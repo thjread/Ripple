@@ -105,6 +105,7 @@ public class Ripple extends CanvasWatchFaceService {
                 invalidate();
             }
         };
+        Typeface mFont;
         float mXOffset;
         float mYOffset;
         GridSim mGridSim;
@@ -168,8 +169,8 @@ public class Ripple extends CanvasWatchFaceService {
         private Paint createTextPaint(int textColor) {
             Paint paint = new Paint();
             paint.setColor(textColor);
-            //Typeface font = Typeface.createFromAsset(getAssets(), "fonts/pixel.ttf");
-            paint.setTypeface(Typeface.DEFAULT);
+            mFont = Typeface.createFromAsset(getAssets(), "fonts/Comfortaa-Bold.ttf");
+            paint.setTypeface(mFont);
             paint.setAntiAlias(true);
             return paint;
         }
@@ -222,8 +223,9 @@ public class Ripple extends CanvasWatchFaceService {
             /*float textSize = resources.getDimension(isRound
                     ? R.dimen.digital_text_size_round : R.dimen.digital_text_size);*/
 
-            float textSize = 11;
-            mTextPaint.setTextSize(textSize);
+            mTextPaint.setTextSize(10.5f);
+            mTextPaint.setTypeface(Typeface.DEFAULT);
+            mTextPaint.setLetterSpacing(0.0f);
         }
 
         @Override
@@ -247,9 +249,13 @@ public class Ripple extends CanvasWatchFaceService {
             }
 
             if (mAmbient) {
+                mTextPaint.setTypeface(mFont);
                 mTextPaint.setTextSize(15);
+                mTextPaint.setLetterSpacing(0.04f);
             } else {
-                mTextPaint.setTextSize(11);
+                mTextPaint.setTypeface(Typeface.DEFAULT);
+                mTextPaint.setTextSize(10.5f);
+                mTextPaint.setLetterSpacing(0.0f);
             }
 
             // Whether the timer should be running depends on whether we're visible (as well as
@@ -283,9 +289,9 @@ public class Ripple extends CanvasWatchFaceService {
             int num_y = grid.length;
             int originX = bounds.left;
             //int originY = bounds.top;
-            float x_inc = ((float) bounds.width())/num_x;
+            float x_inc = ((float) bounds.width())/(num_x+1);
             float y_inc = x_inc;//((float) bounds.height())/num_y;
-            int originY = (int) (bounds.bottom/2 - (num_y/2)*y_inc);
+            int originY = (int) (bounds.bottom/2 - ((num_y+1)/2)*y_inc);
 
             for (int x=0; x<num_x-1; ++x) {
                 for (int y = 0; y < num_y-1; ++y) {
@@ -296,8 +302,8 @@ public class Ripple extends CanvasWatchFaceService {
                     } else {
                         mGridPaint.setColor(Color.rgb(0, 0, -col));
                     }
-                    canvas.drawLine(originX + x*x_inc, originY + y*y_inc - grid[y][x],
-                            originX + x*x_inc, originY + (y+1)*y_inc - grid[y+1][x], mGridPaint);
+                    canvas.drawLine(originX + (x+1)*x_inc, originY + (y+1)*y_inc - grid[y][x],
+                            originX + (x+1)*x_inc, originY + (y+2)*y_inc - grid[y+1][x], mGridPaint);
                     val = 0.5f*(grid[y][x]+grid[y][x+1]) * scale;
                     col = (int) (255/10*val);
                     if (col >= 0) {
@@ -305,8 +311,8 @@ public class Ripple extends CanvasWatchFaceService {
                     } else {
                         mGridPaint.setColor(Color.rgb(0, 0, -col));
                     }
-                    canvas.drawLine(originX + x*x_inc, originY + y*y_inc - grid[y][x],
-                            originX + (x+1)*x_inc, originY + y*y_inc - grid[y][x+1], mGridPaint);
+                    canvas.drawLine(originX + (x+1)*x_inc, originY + (y+1)*y_inc - grid[y][x],
+                            originX + (x+2)*x_inc, originY + (y+1)*y_inc - grid[y][x+1], mGridPaint);
                 }
             }
         }
