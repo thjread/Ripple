@@ -168,7 +168,8 @@ public class Ripple extends CanvasWatchFaceService {
         private Paint createTextPaint(int textColor) {
             Paint paint = new Paint();
             paint.setColor(textColor);
-            paint.setTypeface(NORMAL_TYPEFACE);
+            //Typeface font = Typeface.createFromAsset(getAssets(), "fonts/pixel.ttf");
+            paint.setTypeface(Typeface.DEFAULT);
             paint.setAntiAlias(true);
             return paint;
         }
@@ -221,7 +222,7 @@ public class Ripple extends CanvasWatchFaceService {
             /*float textSize = resources.getDimension(isRound
                     ? R.dimen.digital_text_size_round : R.dimen.digital_text_size);*/
 
-            float textSize = 12;
+            float textSize = 11;
             mTextPaint.setTextSize(textSize);
         }
 
@@ -242,10 +243,13 @@ public class Ripple extends CanvasWatchFaceService {
             super.onAmbientModeChanged(inAmbientMode);
             if (mAmbient != inAmbientMode) {
                 mAmbient = inAmbientMode;
-                if (mLowBitAmbient) {
-                    mTextPaint.setAntiAlias(!inAmbientMode);
-                }
                 invalidate();
+            }
+
+            if (mAmbient) {
+                mTextPaint.setTextSize(15);
+            } else {
+                mTextPaint.setTextSize(11);
             }
 
             // Whether the timer should be running depends on whether we're visible (as well as
@@ -321,7 +325,7 @@ public class Ripple extends CanvasWatchFaceService {
             mCalendar.setTimeInMillis(now);
 
             if (mAmbient) {
-                mCalendar.setTimeInMillis(now + mRippleTime/2);
+                mCalendar.setTimeInMillis(now);
                 String text = String.format("%d:%02d", mCalendar.get(Calendar.HOUR),
                         mCalendar.get(Calendar.MINUTE), mCalendar.get(Calendar.SECOND));
                 mTextCanvas.drawRect(0, 0, num_x, num_y, mBackgroundPaint);
@@ -344,7 +348,12 @@ public class Ripple extends CanvasWatchFaceService {
                         mWasAmbient = 0;
                     }
 
-                    mCalendar.setTimeInMillis((long) (now + 1.5*mRippleTime));
+                    if (mWasAmbient == 1) {
+                        mCalendar.setTimeInMillis((long) (now + 1000 + 0.5*mRippleTime));
+                    } else {
+
+                        mCalendar.setTimeInMillis((long) (now + 1.5*mRippleTime));
+                    }
                     String text = mAmbient
                             ? String.format("%d:%02d", mCalendar.get(Calendar.HOUR),
                             mCalendar.get(Calendar.MINUTE))
@@ -394,6 +403,9 @@ public class Ripple extends CanvasWatchFaceService {
                     drawGrid(canvas, bounds, mLastAnimate[display_frame], scale);
                 }
             }
+
+            //Bitmap quad = Bitmap.createScaledBitmap(mTextBitmap, mTextBitmap.getWidth()*4, mTextBitmap.getHeight()*4, false);
+            //canvas.drawBitmap(quad, bounds.right/2, bounds.bottom/2, mBackgroundPaint);
         }
 
         /**
