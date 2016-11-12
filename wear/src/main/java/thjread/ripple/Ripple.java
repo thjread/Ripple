@@ -95,6 +95,8 @@ public class Ripple extends CanvasWatchFaceService {
         Bitmap mTextBitmap;
         Canvas mTextCanvas;
         boolean mAmbient;
+        int mWasAmbient = 0;
+        int mWasAmbientIndex = 0;
         Calendar mCalendar;
         final BroadcastReceiver mTimeZoneReceiver = new BroadcastReceiver() {
             @Override
@@ -113,6 +115,8 @@ public class Ripple extends CanvasWatchFaceService {
         float[][][] mLastAnimate;
         int mIndex;
 
+        int mRippleTime = 4000;
+
         /**
          * Whether the display supports fewer bits for each color in ambient mode. When true, we
          * disable anti-aliasing in ambient mode.
@@ -124,7 +128,8 @@ public class Ripple extends CanvasWatchFaceService {
             super.onCreate(holder);
 
             setWatchFaceStyle(new WatchFaceStyle.Builder(Ripple.this)
-                    .setCardPeekMode(WatchFaceStyle.PEEK_MODE_VARIABLE)
+                    .setCardPeekMode(WatchFaceStyle.PEEK_MODE_SHORT)
+                    .setAmbientPeekMode(WatchFaceStyle.AMBIENT_PEEK_MODE_HIDDEN)
                     .setBackgroundVisibility(WatchFaceStyle.BACKGROUND_VISIBILITY_INTERRUPTIVE)
                     .setShowSystemUiTime(false)
                     .setAcceptsTapEvents(true)
@@ -150,8 +155,8 @@ public class Ripple extends CanvasWatchFaceService {
             mGridSim.initGrid(num_x, num_y);
 
             mIndex = 0;
-            mAnimate = new float[2500/30 + 1][num_y][num_x];
-            mLastAnimate = new float[2500/30 + 1][num_y][num_x];
+            mAnimate = new float[mRippleTime/2/30 + 1][num_y][num_x];
+            mLastAnimate = new float[mRippleTime/2/30 + 1][num_y][num_x];
         }
 
         @Override
@@ -315,27 +320,31 @@ public class Ripple extends CanvasWatchFaceService {
             long now = System.currentTimeMillis();
             mCalendar.setTimeInMillis(now);
 
-            if (!mAmbient) {
-
-                if (now >= mLastSec + 5000) {
-                    if (now >= mLastSec + 10000) {
-                        mCalendar.setTimeInMillis(now + 2500);
-                        String text = String.format("%d:%02d:%02d", mCalendar.get(Calendar.HOUR),
-                                mCalendar.get(Calendar.MINUTE), mCalendar.get(Calendar.SECOND));
-                        mTextCanvas.drawRect(0, 0, num_x, num_y, mBackgroundPaint);
-                        Rect bs = new Rect();
-                        mTextPaint.getTextBounds(text, 0, text.length(), bs);
-                        mTextCanvas.drawText(text, 0, bs.height() / 2 + num_y / 2, mTextPaint);
-                        mGridSim.setRecordInit(mAnimate, mTextBitmap);
-                        mIndex = 2;
-                        while (mIndex < mAnimate.length) {
-                            mGridSim.simulateGrid(mAnimate, mIndex, 1f / 30);
-                            mIndex++;
-                        }
-                    }
+            if (mAmbient) {
+                mCalendar.setTimeInMillis(now + mRippleTime/2);
+                String text = String.format("%d:%02d", mCalendar.get(Calendar.HOUR),
+                        mCalendar.get(Calendar.MINUTE), mCalendar.get(Calendar.SECOND));
+                mTextCanvas.drawRect(0, 0, num_x, num_y, mBackgroundPaint);
+                Rect bs = new Rect();
+                mTextPaint.getTextBounds(text, 0, text.length(), bs);
+                mTextCanvas.drawText(text,  num_x / 2 - bs.width()/2,
+                        bs.height() / 2 + num_y / 2, mTextPaint);
+                mGridSim.setRecordInit(mAnimate, mTextBitmap);
+                drawGrid(canvas, bounds, mAnimate[0], 1f);
+                mWasAmbient = 2;
+                mWasAmbientIndex = 1;
+            }
+            else {
+                if (now >= mLastSec + mRippleTime || mWasAmbient == 2) {
                     mLastSec = now;
+                    if (mWasAmbient == 2) {
+                        mWasAmbient = 1;
+                        mLastSec = now - (mRippleTime-1000);
+                    } else if (mWasAmbient == 1) {
+                        mWasAmbient = 0;
+                    }
 
-                    mCalendar.setTimeInMillis(now + 7500);
+                    mCalendar.setTimeInMillis((long) (now + 1.5*mRippleTime));
                     String text = mAmbient
                             ? String.format("%d:%02d", mCalendar.get(Calendar.HOUR),
                             mCalendar.get(Calendar.MINUTE))
@@ -344,7 +353,7 @@ public class Ripple extends CanvasWatchFaceService {
                     mTextCanvas.drawRect(0, 0, num_x, num_y, mBackgroundPaint);
                     Rect bs = new Rect();
                     mTextPaint.getTextBounds(text, 0, text.length(), bs);
-                    mTextCanvas.drawText(text, 0, bs.height() / 2 + num_y / 2, mTextPaint);
+                    mTextCanvas.drawText(text, num_x / 2 - bs.width() / 2, bs.height() / 2 + num_y / 2, mTextPaint);
                     float[][][] a = mLastAnimate;
                     mLastAnimate = mAnimate;
                     mAnimate = a;
@@ -355,22 +364,35 @@ public class Ripple extends CanvasWatchFaceService {
                         mGridSim.simulateGrid(mAnimate, mIndex, 1f / 30);
                         mIndex++;
                     }
+                    if (mWasAmbient == 1) {
+                        mGridSim.simulateGrid(mLastAnimate, mWasAmbientIndex, 3f/30);
+                    }
                 }
 
-                int frame = (int) (now - mLastSec);
-                int display_frame;
-                if (frame <= 2500) {
-                    display_frame = (int) ((2500 - frame) * 30f / 1000);
+                if (mWasAmbient == 1) {
+                    float x = (mLastSec+mRippleTime-now)/1000f;
+                    float scale = x*(2-x);
+                    drawGrid(canvas, bounds, mLastAnimate[mWasAmbientIndex], scale);
+                    if (mWasAmbientIndex < mLastAnimate.length-1) {
+                        mWasAmbientIndex++;
+                    }
                 } else {
-                    display_frame = (int) ((frame - 2500) * 30f / 1000);
+                    int frame = (int) (now - mLastSec);
+                    int display_frame;
+                    if (frame <= mRippleTime/2) {
+                        display_frame = (int) ((mRippleTime/2 - frame) * 30f / 1000);
+                    } else {
+                        display_frame = (int) ((frame - mRippleTime/2) * 30f / 1000);
+                    }
+                    float scale = 1.0f;
+                    if (frame < 400) {
+                        scale = (frame/400f)*(2-frame/400f);
+                    } else if (mRippleTime-frame < 400) {
+                        scale = ((mRippleTime-frame)/400f)*(2-(mRippleTime-frame)/400f);
+                    }
+
+                    drawGrid(canvas, bounds, mLastAnimate[display_frame], scale);
                 }
-                float scale = 1.0f;
-                if (frame < 400) {
-                    scale = (frame/400f)*(2-frame/400f);
-                } else if (5000-frame < 400) {
-                    scale = ((5000-frame)/400f)*(2-(5000-frame)/400f);
-                }
-                drawGrid(canvas, bounds, mLastAnimate[display_frame], scale);
             }
         }
 
