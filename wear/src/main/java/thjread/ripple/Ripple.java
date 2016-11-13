@@ -38,7 +38,9 @@ import android.view.WindowInsets;
 import android.widget.Toast;
 
 import java.lang.ref.WeakReference;
+import java.text.SimpleDateFormat;
 import java.util.Calendar;
+import java.util.Locale;
 import java.util.TimeZone;
 import java.util.concurrent.TimeUnit;
 
@@ -98,10 +100,14 @@ public class Ripple extends CanvasWatchFaceService {
         int mWasAmbient = 0;
         int mWasAmbientIndex = 0;
         Calendar mCalendar;
+        SimpleDateFormat mDateFormat;
+        SimpleDateFormat mAmbientDateFormat;
         final BroadcastReceiver mTimeZoneReceiver = new BroadcastReceiver() {
             @Override
             public void onReceive(Context context, Intent intent) {
                 mCalendar.setTimeZone(TimeZone.getDefault());
+                mDateFormat.setTimeZone(TimeZone.getDefault());
+                mAmbientDateFormat.setTimeZone(TimeZone.getDefault());
                 invalidate();
             }
         };
@@ -158,6 +164,9 @@ public class Ripple extends CanvasWatchFaceService {
             mIndex = 0;
             mAnimate = new float[mRippleTime/2/30 + 1][num_y][num_x];
             mLastAnimate = new float[mRippleTime/2/30 + 1][num_y][num_x];
+
+            mDateFormat = new SimpleDateFormat("h:mm:ss");
+            mAmbientDateFormat = new SimpleDateFormat("h:mm");
         }
 
         @Override
@@ -332,8 +341,7 @@ public class Ripple extends CanvasWatchFaceService {
 
             if (mAmbient) {
                 mCalendar.setTimeInMillis(now);
-                String text = String.format("%d:%02d", mCalendar.get(Calendar.HOUR),
-                        mCalendar.get(Calendar.MINUTE), mCalendar.get(Calendar.SECOND));
+                String text = mAmbientDateFormat.format(mCalendar.getTime());
                 mTextCanvas.drawRect(0, 0, num_x, num_y, mBackgroundPaint);
                 Rect bs = new Rect();
                 mTextPaint.getTextBounds(text, 0, text.length(), bs);
@@ -360,11 +368,7 @@ public class Ripple extends CanvasWatchFaceService {
 
                         mCalendar.setTimeInMillis((long) (now + 1.5*mRippleTime));
                     }
-                    String text = mAmbient
-                            ? String.format("%d:%02d", mCalendar.get(Calendar.HOUR),
-                            mCalendar.get(Calendar.MINUTE))
-                            : String.format("%d:%02d:%02d", mCalendar.get(Calendar.HOUR),
-                            mCalendar.get(Calendar.MINUTE), mCalendar.get(Calendar.SECOND));
+                    String text = mDateFormat.format(mCalendar.getTime());
                     mTextCanvas.drawRect(0, 0, num_x, num_y, mBackgroundPaint);
                     Rect bs = new Rect();
                     mTextPaint.getTextBounds(text, 0, text.length(), bs);
