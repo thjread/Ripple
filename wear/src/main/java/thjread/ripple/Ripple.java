@@ -350,24 +350,29 @@ public class Ripple extends CanvasWatchFaceService {
                 mGridSim.setRecordInit(mAnimate, mTextBitmap);
                 drawGrid(canvas, bounds, mAnimate[0], 1f);
                 mWasAmbient = 2;
-                mWasAmbientIndex = 1;
             }
             else {
                 if (now >= mLastSec + mRippleTime || mWasAmbient == 2) {
+                    mCalendar.setTimeInMillis((long) (now + 1.5*mRippleTime));
+                    boolean wasLate = (now >= mLastSec + 2*mRippleTime);
                     mLastSec = now;
+
                     if (mWasAmbient == 2) {
                         mWasAmbient = 1;
                         mLastSec = now - (mRippleTime-1000);
+                        mCalendar.setTimeInMillis((long) (now + 1000 + 0.5*mRippleTime));
+                        mWasAmbientIndex = 2;
                     } else if (mWasAmbient == 1) {
                         mWasAmbient = 0;
                     }
 
-                    if (mWasAmbient == 1) {
-                        mCalendar.setTimeInMillis((long) (now + 1000 + 0.5*mRippleTime));
-                    } else {
-
-                        mCalendar.setTimeInMillis((long) (now + 1.5*mRippleTime));
+                    if (wasLate && mWasAmbient != 1) {
+                        mWasAmbient = 1;
+                        mLastSec = now - (mRippleTime-200);
+                        mCalendar.setTimeInMillis((long) (now + 200 + 0.5*mRippleTime));
+                        mWasAmbientIndex = 2;
                     }
+
                     String text = mDateFormat.format(mCalendar.getTime());
                     mTextCanvas.drawRect(0, 0, num_x, num_y, mBackgroundPaint);
                     Rect bs = new Rect();
@@ -378,14 +383,14 @@ public class Ripple extends CanvasWatchFaceService {
                     mAnimate = a;
                     mGridSim.setRecordInit(mAnimate, mTextBitmap);
                     mIndex = 2;
-                } else {
-                    while (mIndex <= (now - mLastSec) * 30f / 1000 && mIndex < mAnimate.length) {
-                        mGridSim.simulateGrid(mAnimate, mIndex, 1f / 30);
-                        mIndex++;
-                    }
-                    if (mWasAmbient == 1) {
-                        mGridSim.simulateGrid(mLastAnimate, mWasAmbientIndex, 3f/30);
-                    }
+                }
+
+                while (mIndex <= (now - mLastSec) * 30f / 1000 && mIndex < mAnimate.length) {
+                    mGridSim.simulateGrid(mAnimate, mIndex, 1f / 30);
+                    mIndex++;
+                }
+                if (mWasAmbient == 1) {
+                    mGridSim.simulateGrid(mLastAnimate, mWasAmbientIndex, 3f/30);
                 }
 
                 if (mWasAmbient == 1) {
